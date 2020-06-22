@@ -34,6 +34,12 @@ sc_r <- subset(sc,
 
 
 
+# raw data plotting 
+raw_dst_plot(sc_r, "Suicide by Race")
+
+grid.arrange(raw_dst_plot(sc_s, "Suicide Rate by Sex"),
+             raw_dst_plot(sc_r, "Suicide Rate by Race"),
+             ncol = 1)
 
 ####################################### Modeling #########################################
 
@@ -192,11 +198,30 @@ sc_rp <- sc_r %>%
         xlab("Predicted Age-adjusted Rate (per 1,000 People)") + 
         ylab("Actual Age-adjusted Rate (per 1,000 People)")
 
-cor(sc_r$Gpred, sc_r$Age_Adjusted_Rate)
-cor(sc_r$Rpred, sc_r$Age_Adjusted_Rate)
-
-
 grid.arrange(sc_sp, sc_rp, ncol = 1)
+
+# correlation coefficient plot
+corr_plot <- data.frame(Model = c("glmnet_Sex",
+                                    "RandomForest_Sex",
+                                    "glmnet_Race",
+                                    "RandomForest_Race"),
+                          Correlation_Coefficient = 
+                                  c(cor(sc_s$Gpred, sc_s$Age_Adjusted_Rate),
+                                    cor(sc_s$Rpred, sc_s$Age_Adjusted_Rate),
+                                    cor(sc_r$Gpred, sc_r$Age_Adjusted_Rate),
+                                    cor(sc_r$Rpred, sc_r$Age_Adjusted_Rate))) %>%
+        ggplot(aes(x = Model,
+                   y = Correlation_Coefficient,
+                   fill = Model)) + 
+        geom_bar(stat = "identity") + 
+        theme_bw() + 
+        theme(axis.text.x = element_blank()) +
+        ylab("Correlation Coefficient (Pearson’s r)") + 
+        ggtitle("Correlation between Actual Outcome and Prediction")
+
+
+
+
 
 # sc_rr: a gathered table for plotting residuals
 

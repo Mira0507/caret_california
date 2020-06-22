@@ -33,6 +33,21 @@ sc_s <- subset(sc,
         mutate(Strata_Name = factor(Strata_Name, levels = c("Female", "Male")))
 
 
+
+raw_dst_plot <- function(df, tit) {
+        ggplot(df, 
+               aes(x = Age_Adjusted_Rate,
+                   fill = Strata_Name,
+                   color = Strata_Name)) +
+                geom_density(alpha = 0.5) + 
+                theme_bw() + 
+                xlab("Age-adjusted Rate (per 1,000 People)") +
+                ylab("Density") + 
+                ggtitle(tit)
+}
+
+
+raw_dst_plot(sc_s, "Suicide by Sex")
 ####################################### Modeling #########################################
 
 library(caret)

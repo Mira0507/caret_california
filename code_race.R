@@ -183,7 +183,61 @@ sc_r <- sc_r %>%
         mutate(Gpred = predict(grModel, sc_r),
                Rpred = predict(rrModel, sc_r),
                Gresid = Gpred - Age_Adjusted_Rate,
-               Rresid = Rpred - Age_Adjusted_Rate)
+               Rresid = Rpred - Age_Adjusted_Rate,
+               Grmsrel = Gresid / Age_Adjusted_Rate,
+               Rrmsrel = Rresid / Age_Adjusted_Rate)
+
+# RMSE and RMS relative errors for test data
+acc_fn <- function(df, pr) {
+        df %>% summarize(glmnet_RMSE = sqrt(mean(Gresid^2)),
+                         RandomForest_RMSE = sqrt(mean(Rresid^2)),
+                         glmnet_RMS_RE = sqrt(mean(Grmsrel^2)),
+                         RandomForest_RMS_RE = sqrt(mean(Rrmsrel^2)),
+                         glmnet_MAE = mean(abs(Gresid)),
+                         RandomForest_MAE = mean(abs(Rresid))) %>%
+                mutate(Predictor = pr)
+}
+
+acc <- rbind(acc_fn(sc_s, "Sex"), 
+             acc_fn(sc_r, "Race")) %>%
+        gather(RMSE_Model, RMSE, c(glmnet_RMSE, RandomForest_RMSE)) %>%
+        gather(RMS_RE_Model, RMS_RE, c(glmnet_RMS_RE, RandomForest_RMS_RE)) %>%
+        gather(MAE_Model, MAE, c(glmnet_MAE, RandomForest_MAE))
+
+acc_plot <- function(df, xcol, ycol, yname, tit) {
+        ggplot(df, aes(x = xcol, y = ycol, fill = Predictor)) + 
+                geom_bar(stat = "identity", 
+                         position = "dodge",
+                         width = 0.8) + 
+                theme_bw() +
+                ylab(yname) +
+                ggtitle(tit) +
+                xlab(NULL)
+}
+
+
+test_RMSE_plot <- acc_plot(acc, 
+                           acc$RMSE_Model, 
+                           acc$RMSE, 
+                           "RMSE", 
+                           "RMSE in Test Data")    
+         
+
+test_RMS_RE_plot <- acc_plot(acc, 
+                             acc$RMS_RE_Model, 
+                             acc$RMS_RE,
+                             "RMS Relative Error", 
+                             "RMS Relative Error in Test Data")
+
+test_MAE_plot <- acc_plot(acc, 
+                          acc$MAE_Model, 
+                          acc$MAE,
+                          "MAE", 
+                          "MAE in Test Data")
+
+grid.arrange(test_RMSE_plot,
+             test_MAE_plot,
+             ncol = 1)         
 
 # sc_rp: prediction vs Age_Adjusted_Rate plot
 sc_rp <- sc_r %>% 
@@ -220,10 +274,7 @@ corr_plot <- data.frame(Model = c("glmnet_Sex",
         ggtitle("Correlation between Actual Outcome and Prediction")
 
 
-
-
-
-# sc_rr: a gathered table for plotting residuals
+# sc_r: a gathered table for plotting residuals
 
 sc_rrg <- resid_fn(sc_r,
                    sc_r$Gpred,
@@ -240,4 +291,15 @@ sc_rrr <- resid_fn(sc_r,
 grid.arrange(sc_srg, sc_srr,
              sc_rrg, sc_rrr, nrow = 2)
 
+# distribution of residuals
+sc_rr <- sc_r %>%
+        gather(Model, Residual, c(Gresid, Rresid)) %>%
+        mutate(Model = ifelse(Model == "Gresid", "glmnet", "RandomForest")) %>%
+        ggplot(aes(x = Residual, fill = Model, color = Model)) +
+        geom_density(alpha = 0.4) + 
+        theme_bw() + 
+        ylab("Density") + 
+        ggtitle("Distribution of Residuals in Race Models")
 
+
+grid.arrange(sc_sr, sc_rr, ncol = 1)

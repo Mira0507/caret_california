@@ -143,8 +143,15 @@ sc_s <- sc_s %>%
         mutate(Gpred = predict(gModel, sc_s),
                Rpred = predict(rModel, sc_s),
                Gresid = Gpred - Age_Adjusted_Rate,
-               Rresid = Rpred - Age_Adjusted_Rate)
+               Rresid = Rpred - Age_Adjusted_Rate,
+               Grmsrel = Gresid / Age_Adjusted_Rate,
+               Rrmsrel = Rresid / Age_Adjusted_Rate)
 
+
+
+
+
+                   
 # sc_sp: prediction vs Age_Adjusted_Rate plot
 
 sc_sp <- sc_s %>% 
@@ -189,7 +196,17 @@ sc_srr <- resid_fn(sc_s,
                    "Residuals in Random Forests Model (Sex)")
 
 
+library(gridExtra)
 
 grid.arrange(sc_srg, sc_srr, nrow = 1)
 
 
+# distribution of residuals
+sc_sr <- sc_s %>%
+        gather(Model, Residual, c(Gresid, Rresid)) %>%
+        mutate(Model = ifelse(Model == "Gresid", "glmnet", "RandomForest")) %>%
+        ggplot(aes(x = Residual, fill = Model, color = Model)) +
+        geom_density(alpha = 0.4) + 
+        theme_bw() + 
+        ylab("Density") + 
+        ggtitle("Distribution of Residuals in Sex Models")
